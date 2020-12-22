@@ -1,9 +1,8 @@
 import 'package:bitcoin_ticker/currency_card.dart';
-import 'package:bitcoin_ticker/utilities/exchange_fetcher.dart';
+import 'package:bitcoin_ticker/coin_data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
-import 'coin_data.dart';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -12,6 +11,7 @@ class PriceScreen extends StatefulWidget {
 
 class _PriceScreenState extends State<PriceScreen> {
   String _selectedCurrency = 'USD';
+  final CoinData coinData = CoinData();
   final List<CurrencyCard> _cardList = [];
 
   @override
@@ -21,32 +21,40 @@ class _PriceScreenState extends State<PriceScreen> {
   }
 
   Future updateCurrencyCards() async {
-    for (String crypto in cryptoList) {
-      final String exchange = await getExchangeRate(crypto);
-      final CurrencyCard newCard = CurrencyCard(
-        cryptoName: crypto,
-        currency: _selectedCurrency,
-        exchangeRate: exchange,
-      );
-      final int index =
-          _cardList.indexWhere((card) => card.cryptoName == crypto);
-
-      if (index == -1) {
-        setState(() {
-          _cardList.add(newCard);
-        });
-      } else {
-        setState(() {
-          _cardList[index] = newCard;
-        });
-      }
+    for (String crypto in coinData.cryptoCurrencies) {
+      await updateCard(crypto);
     }
+  }
+
+  Future updateCard(String crypto) async {
+    final double exchangeRate =
+        await coinData.getExchangeRate(crypto, _selectedCurrency);
+    final CurrencyCard newCard = CurrencyCard(
+      exchangeRate: exchangeRate.toStringAsFixed(2),
+      currency: _selectedCurrency,
+      cryptoName: crypto,
+    );
+
+    placeCard(newCard);
+  }
+
+  void placeCard(CurrencyCard card) {
+    final int index =
+        _cardList.indexWhere((c) => c.cryptoName == card.cryptoName);
+
+    setState(() {
+      if (index == -1) {
+        _cardList.add(card);
+      } else {
+        _cardList[index] = card;
+      }
+    });
   }
 
   DropdownButton<String> getAndroidPicker() {
     final List<DropdownMenuItem<String>> menuItemList = [];
 
-    for (String currency in currenciesList) {
+    for (String currency in coinData.worldCurrencies) {
       final newMenuItem = DropdownMenuItem<String>(
         child: Text(currency),
         value: currency,
@@ -68,7 +76,7 @@ class _PriceScreenState extends State<PriceScreen> {
   CupertinoPicker getIOSPicker() {
     final List<Text> menuItemList = [];
 
-    for (String currency in currenciesList) {
+    for (String currency in coinData.worldCurrencies) {
       final newMenuItem = Text(
         currency,
         style: TextStyle(
@@ -83,17 +91,11 @@ class _PriceScreenState extends State<PriceScreen> {
       backgroundColor: Colors.lightBlue,
       itemExtent: 38.0,
       onSelectedItemChanged: (selectedIndex) {
-        _selectedCurrency = currenciesList[selectedIndex];
+        _selectedCurrency = coinData.worldCurrencies[selectedIndex];
         updateCurrencyCards();
       },
       children: menuItemList,
     );
-  }
-
-  Future<String> getExchangeRate(String crypto) async {
-    final double exchangeRate =
-        await ExchangeFetcher.getExchangeRate(crypto, _selectedCurrency);
-    return exchangeRate.toStringAsFixed(2);
   }
 
   @override

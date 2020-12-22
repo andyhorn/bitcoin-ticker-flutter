@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-const String apiUriBase = 'https://rest.coinapi.io/v1/exchangerate';
+import 'package:bitcoin_ticker/utilities/constants.dart';
 
 class ExchangeFetcher {
   static Future<double> getExchangeRate(String crypto, String currency) async {
     final String apiKey = DotEnv().env['API_KEY'];
-    final String url = '$apiUriBase/$crypto/$currency';
+    final String url = '$kApiUriBase/$crypto/$currency';
     final Map<String, String> headers = {
       'X-CoinAPI-Key': apiKey,
     };
